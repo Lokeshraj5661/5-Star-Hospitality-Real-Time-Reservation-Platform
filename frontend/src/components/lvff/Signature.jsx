@@ -33,7 +33,7 @@ export default function Signature() {
 
         <div className="mt-16 flex flex-col items-center gap-3">
           <div className="w-16 h-[1px] bg-[var(--lvff-gold)]" />
-          <span className="font-serif italic text-[var(--lvff-gold)]">— V. Subramanyam, House Patron</span>
+          <span className="font-serif italic text-[var(--lvff-gold)]">— Gangaraju Idaguttu, House Patron</span>
           <span className="text-[10px] tracking-luxe uppercase text-[var(--lvff-cream)]/40 mt-2">Pulivendula · 2007</span>
         </div>
       </div>
