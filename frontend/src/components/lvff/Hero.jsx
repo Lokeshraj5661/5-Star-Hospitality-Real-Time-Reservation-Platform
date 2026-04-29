@@ -7,10 +7,8 @@ const DEITY_IMG =
 export default function Hero() {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.92]);
-  const opacity = useTransform(scrollYProgress, [0, 0.85], [1, 0.1]);
   const titleY = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const bgY = useTransform(scrollYProgress, [0, 1], [0, 80]);
 
   return (
     <section
@@ -19,9 +17,50 @@ export default function Hero() {
       data-testid="hero-section"
       className="relative min-h-[100vh] bg-mahogany overflow-hidden flex items-center"
     >
+      {/* Sacred backdrop — Lord Venkateswara, visible yet harmonised with the mahogany sanctuary */}
+      <div className="absolute inset-0 pointer-events-none select-none" data-testid="hero-deity-backdrop">
+        <motion.div
+          style={{
+            y: bgY,
+            backgroundImage: `url(${DEITY_IMG})`,
+            backgroundSize: "auto 110%",
+            backgroundPosition: "right center",
+            backgroundRepeat: "no-repeat",
+            filter: "saturate(0.85) contrast(1.02) brightness(0.85)",
+            opacity: 0.7,
+          }}
+          className="absolute inset-0"
+        />
+        {/* Warm gold tint wash to harmonise with theme */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 70% 50%, rgba(212,175,55,0.12), transparent 60%)",
+            mixBlendMode: "overlay",
+          }}
+        />
+        {/* Left-side mahogany fade — keeps headline crisp, lets deity breathe on the right */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(90deg, rgba(14,11,8,0.95) 0%, rgba(20,16,12,0.85) 30%, rgba(20,16,12,0.35) 55%, rgba(20,16,12,0.15) 75%, rgba(20,16,12,0.35) 100%)",
+          }}
+        />
+        {/* Top + bottom soft vignette */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(14,11,8,0.55) 0%, transparent 25%, transparent 70%, rgba(14,11,8,0.85) 100%)",
+          }}
+        />
+      </div>
+
       {/* Ambient lanterns */}
       <div className="lantern" style={{ width: 380, height: 380, background: "#D4AF37", top: "10%", left: "8%" }} />
-      <div className="lantern" style={{ width: 460, height: 460, background: "#8B6F2A", bottom: "5%", right: "0%", opacity: 0.35 }} />
+      <div className="lantern" style={{ width: 460, height: 460, background: "#8B6F2A", bottom: "5%", right: "0%", opacity: 0.3 }} />
 
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-[var(--lvff-gold)]/40 to-transparent" />
@@ -29,10 +68,9 @@ export default function Hero() {
       </div>
 
       <div className="relative z-10 max-w-[1600px] mx-auto px-6 md:px-12 lg:px-24 grid lg:grid-cols-12 gap-16 items-center w-full pt-32 pb-24">
-        {/* Left: Headline */}
         <motion.div
           style={{ y: titleY }}
-          className="lg:col-span-6 flex flex-col gap-10"
+          className="lg:col-span-7 flex flex-col gap-10"
         >
           <motion.span
             initial={{ opacity: 0, y: 20 }}
@@ -51,6 +89,7 @@ export default function Hero() {
             transition={{ duration: 1.4, delay: 0.4 }}
             className="font-serif text-5xl md:text-6xl lg:text-7xl xl:text-[88px] leading-[0.95] tracking-tight text-[var(--lvff-cream-soft)]"
             data-testid="hero-headline"
+            style={{ textShadow: "0 4px 30px rgba(0,0,0,0.6)" }}
           >
             The{" "}
             <span className="block italic engraved">Culinary</span>{" "}
@@ -61,8 +100,9 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.9 }}
-            className="text-[var(--lvff-cream)]/70 max-w-md text-base md:text-lg leading-relaxed font-light"
+            className="text-[var(--lvff-cream)]/80 max-w-md text-base md:text-lg leading-relaxed font-light"
             data-testid="hero-description"
+            style={{ textShadow: "0 2px 16px rgba(0,0,0,0.6)" }}
           >
             A quiet ode to South Indian craft — idli steamed at dawn, dosa folded by candlelight, and thali served on
             polished mahogany. Welcome to a fast food house redrawn with the manners of a five-star lobby.
@@ -85,60 +125,6 @@ export default function Hero() {
             <div className="w-[1px] h-10 bg-[var(--lvff-gold)]/40" />
             <Stat value="06:00" label="Doors Open" />
           </div>
-        </motion.div>
-
-        {/* Right: Sacred Frame — Lord Venkateswara */}
-        <motion.div
-          style={{ scale, opacity }}
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.6, delay: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-          className="lg:col-span-6 relative flex items-center justify-center"
-          data-testid="hero-deity"
-        >
-          {/* Decorative concentric rings around the shrine */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-[520px] h-[520px] rounded-full border border-[var(--lvff-gold)]/15 slow-spin" />
-            <div className="absolute w-[420px] h-[420px] rounded-full border border-[var(--lvff-gold)]/25" />
-          </div>
-
-          {/* Lantern glows behind shrine */}
-          <div className="absolute -top-8 -left-8 w-32 h-32 rounded-full" style={{ background: "#D4AF37", filter: "blur(60px)", opacity: 0.45 }} />
-          <div className="absolute -bottom-12 -right-8 w-40 h-40 rounded-full" style={{ background: "#FF8C00", filter: "blur(80px)", opacity: 0.3 }} />
-
-          {/* Brushed-gold shrine frame */}
-          <div className="relative gold-frame w-[88%] max-w-[520px] aspect-[4/5] overflow-hidden">
-            {/* Inner image */}
-            <div
-              className="absolute inset-0 breathe"
-              style={{
-                backgroundImage: `url(${DEITY_IMG})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                filter: "saturate(0.92) contrast(1.04) brightness(0.98)",
-              }}
-            />
-            {/* Soft warm light wash to harmonise with mahogany theme */}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(ellipse at 50% 35%, rgba(255,180,80,0.18), transparent 60%), linear-gradient(180deg, rgba(20,16,12,0.0) 50%, rgba(14,11,8,0.55) 100%)",
-              }}
-            />
-            {/* Inner gold rule frame */}
-            <div className="absolute inset-3 border border-[var(--lvff-gold)]/35 pointer-events-none" />
-
-            {/* Bottom plaque */}
-            <div className="absolute bottom-5 left-5 right-5 flex items-center justify-between text-[9px] tracking-luxe uppercase text-[var(--lvff-cream)]/85">
-              <span>Sri Venkateswara</span>
-              <span className="w-8 h-[1px] bg-[var(--lvff-gold)]" />
-              <span>Tirumala</span>
-            </div>
-          </div>
-
-          {/* Floor reflection */}
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[320px] h-[40px] rounded-[50%] bg-[var(--lvff-gold)]/20 blur-2xl" />
         </motion.div>
       </div>
 
