@@ -3,6 +3,8 @@ import { useRef } from "react";
 
 const HERO_IMG =
   "https://static.prod-images.emergentagent.com/jobs/d80f9170-c393-4bd3-9ab1-5c075724dd15/images/937c3d12087057598417171b00c5a42c6e5d49d3e5b3349b3475878308e04e79.png";
+const DEITY_IMG =
+  "https://customer-assets.emergentagent.com/job_hospitality-gallery/artifacts/pzi1af18_Skykishrain%20-%20Lord%20Venkateswara%20swamy%20Beautiful%20imAgeS.jpg";
 
 export default function Hero() {
   const ref = useRef(null);
@@ -22,6 +24,39 @@ export default function Hero() {
       data-testid="hero-section"
       className="relative min-h-[100vh] bg-mahogany overflow-hidden flex items-center"
     >
+      {/* Sacred backdrop — Lord Venkateswara, treated to merge with the mahogany sanctuary */}
+      <div className="absolute inset-0 pointer-events-none select-none" data-testid="hero-deity-backdrop">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url(${DEITY_IMG})`,
+            backgroundSize: "auto 92%",
+            backgroundPosition: "center 55%",
+            backgroundRepeat: "no-repeat",
+            filter: "saturate(0.55) sepia(0.35) brightness(0.5) contrast(1.05) blur(1.5px)",
+            opacity: 0.32,
+            mixBlendMode: "luminosity",
+          }}
+        />
+        {/* Warm gold tint wash to harmonise with theme */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 45%, rgba(212,175,55,0.18), transparent 55%)",
+            mixBlendMode: "overlay",
+          }}
+        />
+        {/* Vignette + bottom mahogany fade so headline and thali read clearly */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, transparent 35%, rgba(20,16,12,0.7) 75%, rgba(14,11,8,0.95) 100%), linear-gradient(180deg, rgba(20,16,12,0.55) 0%, transparent 30%, transparent 65%, rgba(14,11,8,0.85) 100%)",
+          }}
+        />
+      </div>
+
       {/* Ambient lanterns */}
       <div className="lantern" style={{ width: 380, height: 380, background: "#D4AF37", top: "10%", left: "8%" }} />
       <div className="lantern" style={{ width: 460, height: 460, background: "#8B6F2A", bottom: "5%", right: "0%", opacity: 0.35 }} />
