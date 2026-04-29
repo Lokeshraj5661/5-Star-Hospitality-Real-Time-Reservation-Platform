@@ -1,0 +1,127 @@
+{
+  "theme": "Dark Luxury",
+  "archetype": "5",
+  "archetype_name": "Jewel & Luxury",
+  "colors": {
+    "background_primary": "#1A1A1A",
+    "background_secondary": "#2B2B2B",
+    "surface": "#333333",
+    "surface_glass": "rgba(43, 43, 43, 0.6)",
+    "text_primary": "#F9F5F0",
+    "text_secondary": "#F5F5DC",
+    "accent_primary": "#D4AF37",
+    "accent_secondary": "#CFB53B",
+    "accent_beacon": "#FF6B00",
+    "border_light": "rgba(212, 175, 55, 0.2)",
+    "border_solid": "#D4AF37"
+  },
+  "css_variables": {
+    ":root": {
+      "--background": "210 20% 98%",
+      "--foreground": "0 0% 10%",
+      "--primary": "45 65% 53%",
+      "--primary-foreground": "0 0% 10%",
+      "--secondary": "60 56% 91%",
+      "--secondary-foreground": "0 0% 10%",
+      "--accent": "49 61% 52%",
+      "--accent-foreground": "0 0% 10%",
+      "--destructive": "25 100% 50%",
+      "--destructive-foreground": "210 20% 98%",
+      "--border": "45 65% 53%",
+      "--input": "transparent",
+      "--ring": "45 65% 53%",
+      "--radius": "0rem"
+    },
+    ".dark": {
+      "--background": "0 0% 10%",
+      "--foreground": "37 33% 96%",
+      "--primary": "45 65% 53%",
+      "--primary-foreground": "0 0% 10%",
+      "--secondary": "0 0% 17%",
+      "--secondary-foreground": "37 33% 96%",
+      "--accent": "49 61% 52%",
+      "--accent-foreground": "0 0% 10%",
+      "--destructive": "25 100% 50%",
+      "--destructive-foreground": "37 33% 96%",
+      "--border": "45 65% 53%",
+      "--input": "transparent",
+      "--ring": "49 61% 52%"
+    }
+  },
+  "typography": {
+    "heading_font": "Cormorant Garamond",
+    "body_font": "Manrope",
+    "heading_scale": {
+      "h1": "text-5xl md:text-7xl tracking-tighter leading-none font-medium",
+      "h2": "text-4xl md:text-5xl tracking-tight font-medium",
+      "h3": "text-2xl md:text-3xl font-medium",
+      "h4": "text-xl md:text-2xl font-medium"
+    },
+    "body_scale": {
+      "base": "text-base leading-relaxed tracking-wide font-light",
+      "small": "text-sm tracking-widest uppercase font-light",
+      "overline": "text-xs tracking-[0.2em] uppercase font-medium"
+    }
+  },
+  "spacing_and_layout": {
+    "container_padding": "px-6 md:px-12 lg:px-24 py-16 md:py-32",
+    "section_gap": "gap-24 md:gap-40",
+    "grid_system": "Bento Grid Mode A (Tetris) for galleries, standard CSS grids for functional sections",
+    "border_radius": "rounded-none or max rounded-sm to maintain luxury edge"
+  },
+  "interactions_and_motion": {
+    "hero_animation": "Gentle 'breathing' float (y-axis translation +/- 10px over 4s ease-in-out), soft-focus depth of field blur on scroll.",
+    "hover_states": "3D rotation (rotateX, rotateY) on menu cards. Gold borders glow (box-shadow) on hover.",
+    "page_transition": "Particle dissolve and soft-focus shift using framer-motion.",
+    "scroll": "Lenis smooth scrolling with heavy momentum."
+  },
+  "components": {
+    "buttons": "Flat background with 1px gold border. Hover: Background fills with brushed gold, text turns charcoal. Font: overline or small uppercase.",
+    "cards": "Dark marble or charcoal background, 1px brushed gold frame, backdrop blur. Hover: rotate3d.",
+    "inputs": "Shadcn UI base, customized: transparent bg, border-b only (solid gold), no rounded corners, glowing focus state.",
+    "map": "Topographical 3D rendering (React Three Fiber or interactive image overlay) with a pulsing holographic safety orange beacon for the RTC bus stand."
+  },
+  "media": {
+    "hero_thali": "https://static.prod-images.emergentagent.com/jobs/d80f9170-c393-4bd3-9ab1-5c075724dd15/images/937c3d12087057598417171b00c5a42c6e5d49d3e5b3349b3475878308e04e79.png",
+    "menu_dosa": "https://static.prod-images.emergentagent.com/jobs/d80f9170-c393-4bd3-9ab1-5c075724dd15/images/c66de5f4608703aa18be858a23ab3e55f5214ddbe7aa1dc0b53867a2df38183f.png",
+    "menu_idli": "https://static.prod-images.emergentagent.com/jobs/d80f9170-c393-4bd3-9ab1-5c075724dd15/images/90ecae5b7f75b6e81bb41252c92d2dd2d40d3d5336d49e5a1b4bf115c9cc694b.png",
+    "map_texture": "https://static.prod-images.emergentagent.com/jobs/d80f9170-c393-4bd3-9ab1-5c075724dd15/images/472e8329a19012dae4b9be7ab3c6568e015c236a30a560f91a480790dc0c86ba.png",
+    "background_texture": "https://images.unsplash.com/photo-1690049104977-938673e707f7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2OTF8MHwxfHNlYXJjaHwzfHxkYXJrJTIwbWFyYmxlJTIwZ29sZCUyMHRleHR1cmV8ZW58MHx8fHwxNzc3NDU0ODI2fDA&ixlib=rb-4.1.0&q=85"
+  },
+  "sections_blueprint": [
+    {
+      "name": "Hero - The Golden Plate",
+      "content": "Hyper-realistic 3D floating thali. Charcoal background with cinematic warm evening lantern illumination. Headline 'The Culinary Sanctuary'. Minimalist scroll indicator.",
+      "tech": "Framer Motion (breathing animation), absolute positioning, high-z-index."
+    },
+    {
+      "name": "Transition - Soft Focus",
+      "content": "As user scrolls, the hero plate glides off-screen laterally or backwards in Z-space, and the background blurs deeply (depth-of-field effect).",
+      "tech": "Framer Motion useScroll, CSS filter: blur()."
+    },
+    {
+      "name": "Gallery - Menu Showcase",
+      "content": "Bento grid displaying Dosa, Idli, etc. Cards have brushed gold frames. Hovering triggers a 3D rotation (tilt effect) and background shifts from charcoal to bronze.",
+      "tech": "CSS perspective, Framer Motion for tilt, glassmorphism overlays."
+    },
+    {
+      "name": "Concierge Map",
+      "content": "Tactile map visual of Pulivendula. Deep charcoal base with gold streets. A glowing holographic safety orange beacon pulses over the 'RTC Bus Stand'.",
+      "tech": "React Three Fiber (if full 3D) or layered image with absolute positioned Framer Motion pulsing dot (orange beacon)."
+    },
+    {
+      "name": "Reservation/Concierge Form",
+      "content": "High-end contact form. Floating labels, solid gold bottom borders. Dark polished aesthetic. 'Request a Table' CTA.",
+      "tech": "Shadcn Form heavily customized (no rounding, luxury spacing)."
+    }
+  ],
+  "testing_attributes": {
+    "rule": "All interactive and key informational elements MUST include a data-testid attribute.",
+    "convention": "kebab-case, role-based. e.g., data-testid='hero-cta-button', data-testid='menu-item-card', data-testid='reservation-submit'"
+  },
+  "instructions_to_main_agent": {
+    "stack": "React 19, Tailwind CSS, Shadcn UI, FastAPI, MongoDB. Use JS files (.js/.jsx), NOT TSX.",
+    "libraries_to_install": ["framer-motion", "lucide-react", "@studio-freight/react-lenis", "clsx", "tailwind-merge"],
+    "styling": "Enforce 'The Culinary Sanctuary' philosophy. The UI must feel like a 5-star hotel lobby. No standard SaaS borders or soft rounded corners. Use sharp edges or max 2px border radius. Rely heavily on typography (Cormorant Garamond for headings, Manrope for body text) for the luxury feel. Do not use generic placeholders; strictly use the provided media URLs."
+  }
+}
