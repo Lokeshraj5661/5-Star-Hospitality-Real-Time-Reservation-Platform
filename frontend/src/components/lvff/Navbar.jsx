@@ -34,8 +34,14 @@ export default function Navbar() {
     >
       <div className="max-w-[1600px] mx-auto px-6 md:px-12 flex items-center justify-between">
         <a href="#hero" data-testid="brand-logo" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 border border-[var(--lvff-gold)] flex items-center justify-center text-[var(--lvff-gold)] font-serif text-lg">
-            L
+          <div className="w-10 h-10 rounded-full overflow-hidden border border-[var(--lvff-gold)] shadow-[0_0_20px_rgba(212,175,55,0.35)]">
+            <img
+              src="https://customer-assets.emergentagent.com/job_hospitality-gallery/artifacts/pzi1af18_Skykishrain%20-%20Lord%20Venkateswara%20swamy%20Beautiful%20imAgeS.jpg"
+              alt="Sri Venkateswara"
+              className="w-full h-full object-cover"
+              style={{ objectPosition: "center 28%" }}
+              draggable={false}
+            />
           </div>
           <div className="hidden md:flex flex-col leading-none">
             <span className="font-serif text-[var(--lvff-cream)] text-lg tracking-wide">Lakshmi Venkateswara</span>

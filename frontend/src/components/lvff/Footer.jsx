@@ -4,7 +4,15 @@ export default function Footer() {
       <div className="max-w-[1600px] mx-auto grid md:grid-cols-12 gap-12">
         <div className="md:col-span-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border border-[var(--lvff-gold)] flex items-center justify-center text-[var(--lvff-gold)] font-serif text-xl">L</div>
+            <div className="w-11 h-11 rounded-full overflow-hidden border border-[var(--lvff-gold)] shadow-[0_0_20px_rgba(212,175,55,0.35)]">
+              <img
+                src="https://customer-assets.emergentagent.com/job_hospitality-gallery/artifacts/pzi1af18_Skykishrain%20-%20Lord%20Venkateswara%20swamy%20Beautiful%20imAgeS.jpg"
+                alt="Sri Venkateswara"
+                className="w-full h-full object-cover"
+                style={{ objectPosition: "center 28%" }}
+                draggable={false}
+              />
+            </div>
             <div className="leading-none">
               <div className="font-serif text-xl text-[var(--lvff-cream-soft)]">Lakshmi Venkateswara</div>
               <div className="text-[10px] tracking-luxe uppercase text-[var(--lvff-gold)] mt-1">Fast Foods · The Culinary Sanctuary</div>
