@@ -55,8 +55,8 @@ export default function Hero() {
             className="font-serif text-5xl md:text-6xl lg:text-7xl xl:text-[88px] leading-[0.95] tracking-tight text-[var(--lvff-cream-soft)]"
             data-testid="hero-headline"
           >
-            The
-            <span className="block italic engraved">Culinary</span>
+            The{" "}
+            <span className="block italic engraved">Culinary</span>{" "}
             Sanctuary.
           </motion.h1>
 
