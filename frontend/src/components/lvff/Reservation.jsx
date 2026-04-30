@@ -56,7 +56,7 @@ export default function Reservation() {
 
           <div className="mt-12 gold-rule" />
           <div className="mt-10 grid grid-cols-2 gap-8">
-            <Detail label="Service" value="06:00 — 22:30" />
+            <Detail label="Service" value="11:00 — 22:30" />
             <Detail label="Closed" value="Never" />
             <Detail label="Dress" value="As you are" />
             <Detail label="Children" value="Most welcome" />

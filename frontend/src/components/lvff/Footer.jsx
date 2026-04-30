@@ -36,10 +36,10 @@ export default function Footer() {
         <FooterCol
           title="Visit"
           items={[
-            { label: "Opp. RTC Bus Stand" },
-            { label: "Pulivendula, Kadapa" },
-            { label: "06:00 – 22:30 · Daily" },
-            { label: "+91 98765 43210" },
+            { label: "RTC Bus Stand, Islampuram" },
+            { label: "Pulivendula, AP — 516390" },
+            { label: "11:00 AM — 10:30 PM · Daily" },
+            { label: "+91 99662 11944", href: "tel:+919966211944" },
           ]}
         />
         <FooterCol

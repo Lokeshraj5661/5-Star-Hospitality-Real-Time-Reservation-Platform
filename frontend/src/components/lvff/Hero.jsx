@@ -123,7 +123,7 @@ export default function Hero() {
             <div className="w-[1px] h-10 bg-[var(--lvff-gold)]/40" />
             <Stat value="18yrs" label="Of Quiet Craft" />
             <div className="w-[1px] h-10 bg-[var(--lvff-gold)]/40" />
-            <Stat value="06:00" label="Doors Open" />
+            <Stat value="11:00" label="Doors Open" />
           </div>
         </motion.div>
       </div>
