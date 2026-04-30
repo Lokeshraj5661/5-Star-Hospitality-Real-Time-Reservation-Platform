@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
-import { motion, useInView } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, useInView, useTransform } from "framer-motion";
+import { useMotion } from "@/context/MotionContext";
 
 const DOSA_IMG =
   "https://static.prod-images.emergentagent.com/jobs/d80f9170-c393-4bd3-9ab1-5c075724dd15/images/c66de5f4608703aa18be858a23ab3e55f5214ddbe7aa1dc0b53867a2df38183f.png";
@@ -93,6 +94,42 @@ export default function Menu() {
   const inView = useInView(ref, { margin: "-15% 0px", once: true });
   const [hovered, setHovered] = useState(null);
 
+  // Gyroscope-driven dish tilt + dynamic shimmer
+  const { tiltX, tiltY, granted, haptics } = useMotion();
+  const cardRotX = useTransform(tiltY, (v) => -v * 22);
+  const cardRotY = useTransform(tiltX, (v) => v * 22);
+  const shimmer = useTransform(
+    tiltX,
+    (v) =>
+      `linear-gradient(${100 + v * 60}deg, transparent 30%, rgba(212,175,55,${0.1 + Math.abs(v) * 0.18}) 50%, transparent 70%)`
+  );
+
+  // Magnetic snap haptic — tick when each card centers in viewport on mobile
+  useEffect(() => {
+    if (!granted) return;
+    const triggered = new Set();
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          const id = e.target.getAttribute("data-testid");
+          if (e.isIntersecting && e.intersectionRatio >= 0.7) {
+            if (!triggered.has(id)) {
+              triggered.add(id);
+              haptics.tick();
+            }
+          } else if (e.intersectionRatio < 0.4) {
+            triggered.delete(id);
+          }
+        });
+      },
+      { threshold: [0.4, 0.7] }
+    );
+    document
+      .querySelectorAll('[data-testid^="menu-item-"]')
+      .forEach((c) => obs.observe(c));
+    return () => obs.disconnect();
+  }, [granted, haptics]);
+
   return (
     <section
       id="menu"
@@ -111,8 +148,8 @@ export default function Menu() {
             </h2>
           </div>
           <p className="max-w-md text-[var(--lvff-cream)]/65 leading-relaxed">
-            A collection arranged like a brass-framed gallery wall — each plate is its own small painting. Hover to see
-            the dish lean toward you.
+            A collection arranged like a brass-framed gallery wall — each plate is its own small painting. Tilt your
+            phone or hover to see the dish lean toward you.
           </p>
         </div>
 
@@ -125,28 +162,41 @@ export default function Menu() {
               transition={{ duration: 0.9, delay: 0.05 + i * 0.08, ease: [0.2, 0.8, 0.2, 1] }}
               onMouseEnter={() => setHovered(d.id)}
               onMouseLeave={() => setHovered(null)}
+              onClick={() => haptics.light()}
               className={`gold-frame relative ${d.span} ${d.height} group overflow-hidden cursor-pointer`}
               data-testid={`menu-item-${d.id}`}
               style={{ perspective: "1200px" }}
             >
-              {/* Image */}
+              {/* Tilt-aware 3D rotation layer */}
               <motion.div
-                animate={{
-                  rotateX: hovered === d.id ? -8 : 0,
-                  rotateY: hovered === d.id ? 8 : 0,
-                  scale: hovered === d.id ? 1.06 : 1,
-                }}
-                transition={{ duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ transformStyle: "preserve-3d" }}
+                className="absolute inset-0"
+                style={{ rotateX: cardRotX, rotateY: cardRotY, transformStyle: "preserve-3d" }}
               >
-                <img
-                  src={d.image}
-                  alt={d.name}
-                  className="w-[80%] h-[80%] object-contain pointer-events-none select-none"
-                  draggable={false}
-                />
+                {/* Hover scale + extra rotate */}
+                <motion.div
+                  animate={{
+                    rotateX: hovered === d.id ? -6 : 0,
+                    rotateY: hovered === d.id ? 6 : 0,
+                    scale: hovered === d.id ? 1.06 : 1,
+                  }}
+                  transition={{ duration: 0.9, ease: [0.2, 0.8, 0.2, 1] }}
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ transformStyle: "preserve-3d" }}
+                >
+                  <img
+                    src={d.image}
+                    alt={d.name}
+                    className="w-[80%] h-[80%] object-contain pointer-events-none select-none"
+                    draggable={false}
+                  />
+                </motion.div>
               </motion.div>
+
+              {/* Dynamic refractive shimmer — fixed-in-space studio light */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                style={{ background: shimmer, mixBlendMode: "screen" }}
+              />
 
               {/* Hover bronze wash */}
               <div

@@ -1,6 +1,7 @@
 import { motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { MapPin, Phone, Clock, Navigation } from "lucide-react";
+import { useMotion } from "@/context/MotionContext";
 
 const MAP_TEXTURE =
   "https://static.prod-images.emergentagent.com/jobs/d80f9170-c393-4bd3-9ab1-5c075724dd15/images/472e8329a19012dae4b9be7ab3c6568e015c236a30a560f91a480790dc0c86ba.png";
@@ -38,6 +39,7 @@ export default function ConciergeMap() {
   const ref = useRef(null);
   const inView = useInView(ref, { margin: "-15% 0px", once: true });
   const { label, tone } = useLiveStatus();
+  const { haptics } = useMotion();
 
   const dotColor = tone === "green" ? "#34D399" : tone === "amber" ? "#F59E0B" : "#9CA3AF";
 
@@ -108,6 +110,7 @@ export default function ConciergeMap() {
               value={
                 <a
                   href={`tel:${PHONE_RAW}`}
+                  onClick={() => haptics.medium()}
                   className="lux-link text-[var(--lvff-cream-soft)]"
                   data-testid="phone-call-link"
                 >
@@ -123,6 +126,7 @@ export default function ConciergeMap() {
             href={DIRECTIONS_URL}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => haptics.medium()}
             className="group relative gold-frame p-6 mt-4 flex items-center gap-5 hover:translate-y-[-2px] transition-transform"
             data-testid="direction-card"
           >

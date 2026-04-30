@@ -1,5 +1,6 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import { useMotion } from "@/context/MotionContext";
 
 const DEITY_IMG =
   "https://customer-assets.emergentagent.com/job_hospitality-gallery/artifacts/pzi1af18_Skykishrain%20-%20Lord%20Venkateswara%20swamy%20Beautiful%20imAgeS.jpg";
@@ -10,6 +11,17 @@ export default function Hero() {
   const titleY = useTransform(scrollYProgress, [0, 1], [0, -120]);
   const bgY = useTransform(scrollYProgress, [0, 1], [0, 80]);
 
+  // Gyroscope-driven micro parallax on the sacred backdrop
+  const { tiltX, tiltY } = useMotion();
+  const tiltTransX = useTransform(tiltX, (v) => v * 36);
+  const tiltTransY = useTransform(tiltY, (v) => v * 24);
+  // Dynamic light shimmer that stays "fixed in space" as the device tilts
+  const shimmer = useTransform(
+    tiltX,
+    (v) =>
+      `radial-gradient(ellipse at ${50 + v * 80}% ${45 - v * 20}%, rgba(255,205,120,0.22), transparent 55%)`
+  );
+
   return (
     <section
       id="hero"
@@ -19,17 +31,24 @@ export default function Hero() {
     >
       {/* Sacred backdrop — Lord Venkateswara, visible yet harmonised with the mahogany sanctuary */}
       <div className="absolute inset-0 pointer-events-none select-none" data-testid="hero-deity-backdrop">
+        <motion.div className="absolute inset-0" style={{ x: tiltTransX, y: tiltTransY }}>
+          <motion.div
+            style={{
+              y: bgY,
+              backgroundImage: `url(${DEITY_IMG})`,
+              backgroundSize: "auto 110%",
+              backgroundPosition: "right center",
+              backgroundRepeat: "no-repeat",
+              filter: "saturate(0.85) contrast(1.02) brightness(0.85)",
+              opacity: 0.7,
+            }}
+            className="absolute inset-0"
+          />
+        </motion.div>
+        {/* Dynamic studio light — stays fixed in space, shimmers as device tilts */}
         <motion.div
-          style={{
-            y: bgY,
-            backgroundImage: `url(${DEITY_IMG})`,
-            backgroundSize: "auto 110%",
-            backgroundPosition: "right center",
-            backgroundRepeat: "no-repeat",
-            filter: "saturate(0.85) contrast(1.02) brightness(0.85)",
-            opacity: 0.7,
-          }}
           className="absolute inset-0"
+          style={{ background: shimmer, mixBlendMode: "overlay" }}
         />
         {/* Warm gold tint wash to harmonise with theme */}
         <div

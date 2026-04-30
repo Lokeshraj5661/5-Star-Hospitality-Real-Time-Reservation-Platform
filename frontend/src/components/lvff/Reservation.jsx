@@ -2,6 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { useMotion } from "@/context/MotionContext";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -11,12 +12,14 @@ const initial = { name: "", phone: "", date: "", time: "19:30", guests: 2, occas
 export default function Reservation() {
   const [form, setForm] = useState(initial);
   const [loading, setLoading] = useState(false);
+  const { haptics } = useMotion();
 
   const update = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const submit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.phone || !form.date) {
+      haptics.light();
       toast.error("Please complete name, phone, and date.");
       return;
     }
@@ -26,9 +29,11 @@ export default function Reservation() {
         ...form,
         guests: Number(form.guests) || 2,
       });
+      haptics.success();
       toast.success(`Table secured · Reservation #${data.id.slice(0, 6).toUpperCase()}`);
       setForm(initial);
     } catch (err) {
+      haptics.light();
       toast.error("The concierge could not be reached. Please retry.");
     } finally {
       setLoading(false);
