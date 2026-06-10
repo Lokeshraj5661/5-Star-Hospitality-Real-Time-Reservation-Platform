@@ -55,7 +55,7 @@ export default function Reservation() {
             Secure a <span className="italic engraved">Quiet</span> Seat.
           </h2>
           <p className="text-[var(--lvff-cream)]/65 max-w-md leading-relaxed mt-8">
-            We hold a small set of corner tables for guests who write ahead. Tell us the hour and we'll prepare a place
+            We hold a small set of corner tables for guests who write ahead. Tell us the hour and we&apos;ll prepare a place
             with banana leaf, brass davarah, and warm-pressed napkins.
           </p>
 

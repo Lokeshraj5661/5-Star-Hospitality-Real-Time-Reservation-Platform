@@ -28,7 +28,7 @@ export default function MotionInvite() {
               Experience the <span className="italic engraved">Sanctuary</span> in motion.
             </h3>
             <p className="text-sm text-[var(--lvff-cream)]/65 leading-relaxed">
-              Allow gentle access to your device's motion sensors and our shrine, plates and
+              Allow gentle access to your device&apos;s motion sensors and our shrine, plates and
               lanterns will tilt with you — as if held in your own hands.
             </p>
             <div className="flex flex-col gap-3 mt-2">
