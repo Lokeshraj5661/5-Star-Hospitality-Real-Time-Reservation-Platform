@@ -1,18 +1,30 @@
-from fastapi import FastAPI, APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Header, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import asyncio
-import json
 import os
 import logging
+import secrets
+from collections import defaultdict
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Literal
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta, date as date_cls
+import jwt
 
-from notifications import send_sms, send_email, render_event_email, NOTIFY_EMAIL_TO
+from notifications import (
+    send_sms,
+    send_email,
+    render_event_email,
+    NOTIFY_EMAIL_TO,
+    sms_reservation_confirmed,
+    sms_reservation_cancelled,
+    sms_order_confirmed,
+    sms_order_cancelled,
+)
 
 
 ROOT_DIR = Path(__file__).parent
@@ -25,10 +37,17 @@ db = client[os.environ["DB_NAME"]]
 app = FastAPI(title="Lakshmi Venkateswara Fast Foods · API")
 api_router = APIRouter(prefix="/api")
 
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+# === Admin auth config ===
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "lokeshraju")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Lokeshloke")
+JWT_SECRET = os.environ.get("JWT_SECRET") or secrets.token_urlsafe(48)
+JWT_ALG = "HS256"
+JWT_TTL_HOURS = 12
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 # ============= Models =============
@@ -63,7 +82,7 @@ class Reservation(BaseModel):
     guests: int = 2
     occasion: str = ""
     note: str = ""
-    status: str = "pending"
+    status: Literal["pending", "confirmed", "cancelled"] = "pending"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -90,8 +109,12 @@ class Order(BaseModel):
     items: List[OrderItem]
     total: float
     note: str = ""
-    status: str = "pending"
+    status: Literal["pending", "confirmed", "cancelled"] = "pending"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class StatusUpdate(BaseModel):
+    status: Literal["pending", "confirmed", "cancelled"]
 
 
 class MenuItem(BaseModel):
@@ -104,7 +127,10 @@ class MenuItem(BaseModel):
 
 
 class AdminLogin(BaseModel):
+    username: str
     password: str
+    captcha: Optional[str] = None
+    captcha_expected: Optional[str] = None
 
 
 # ============= WebSocket connection manager =============
@@ -134,13 +160,33 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-# ============= Admin auth dep =============
-def require_admin(x_admin_password: Optional[str] = Header(default=None)):
-    if not ADMIN_PASSWORD:
-        raise HTTPException(status_code=503, detail="Admin not configured. Set ADMIN_PASSWORD in backend/.env")
-    if x_admin_password != ADMIN_PASSWORD:
-        raise HTTPException(status_code=401, detail="Invalid admin password")
-    return True
+# ============= JWT helpers =============
+def create_token(username: str) -> str:
+    payload = {
+        "sub": username,
+        "role": "admin",
+        "iat": int(datetime.now(timezone.utc).timestamp()),
+        "exp": int((datetime.now(timezone.utc) + timedelta(hours=JWT_TTL_HOURS)).timestamp()),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALG)
+
+
+def verify_token(token: str) -> dict:
+    return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
+
+
+def require_admin(creds: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme)):
+    if not creds or creds.scheme.lower() != "bearer":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    try:
+        payload = verify_token(creds.credentials)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    return payload
 
 
 # ============= Static Menu (mirrors frontend menuData.js) =============
@@ -265,18 +311,17 @@ async def create_reservation(payload: ReservationCreate):
     doc["created_at"] = doc["created_at"].isoformat()
     await db.reservations.insert_one(doc)
 
-    # Notifications + broadcast
-    asyncio.create_task(_handle_reservation_notify(obj))
+    asyncio.create_task(_notify_reservation_created(obj))
     return obj
 
 
-async def _handle_reservation_notify(obj: Reservation):
+async def _notify_reservation_created(obj: Reservation):
     short = obj.id[:6].upper()
-    sms_body = (
-        f"LAKSHMI VENKATESWARA — Reservation #{short} for {obj.name} on {obj.date} {obj.time} "
-        f"(party of {obj.guests}). We'll call to confirm. — Concierge"
+    body = (
+        f"LAKSHMI VENKATESWARA — Reservation #{short} received for {obj.name} on {obj.date} {obj.time} "
+        f"(party of {obj.guests}). We'll call to confirm shortly. — Concierge"
     )
-    send_sms(obj.phone, sms_body)
+    send_sms(obj.phone, body)
     email_html = render_event_email(
         f"New Reservation · #{short}",
         [
@@ -285,22 +330,60 @@ async def _handle_reservation_notify(obj: Reservation):
             ("Date", obj.date),
             ("Time", obj.time),
             ("Party", str(obj.guests)),
+            ("Status", "PENDING"),
             ("Occasion", obj.occasion or "—"),
             ("Note", obj.note or "—"),
         ],
     )
     send_email(f"[LVFF] Reservation #{short}", email_html)
-
-    await manager.broadcast({"type": "reservation", "data": obj.model_dump(mode="json")})
+    await manager.broadcast({"type": "reservation.created", "data": obj.model_dump(mode="json")})
 
 
 @api_router.get("/reservations", response_model=List[Reservation])
 async def list_reservations(_=Depends(require_admin)):
-    rows = await db.reservations.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    rows = await db.reservations.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     for r in rows:
         if isinstance(r.get("created_at"), str):
             r["created_at"] = datetime.fromisoformat(r["created_at"])
     return rows
+
+
+@api_router.patch("/reservations/{rid}", response_model=Reservation)
+async def update_reservation_status(rid: str, payload: StatusUpdate, _=Depends(require_admin)):
+    doc = await db.reservations.find_one({"id": rid}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    await db.reservations.update_one({"id": rid}, {"$set": {"status": payload.status}})
+    doc["status"] = payload.status
+    if isinstance(doc.get("created_at"), str):
+        doc["created_at"] = datetime.fromisoformat(doc["created_at"])
+    obj = Reservation(**doc)
+    asyncio.create_task(_notify_reservation_status(obj))
+    return obj
+
+
+async def _notify_reservation_status(obj: Reservation):
+    short = obj.id[:6].upper()
+    if obj.status == "confirmed":
+        send_sms(obj.phone, sms_reservation_confirmed(obj.name, obj.date, obj.time, obj.guests, short))
+        send_email(
+            f"[LVFF] Reservation CONFIRMED · #{short}",
+            render_event_email(
+                f"Reservation Confirmed · #{short}",
+                [("Guest", obj.name), ("Phone", obj.phone), ("Date", obj.date), ("Time", obj.time),
+                 ("Party", str(obj.guests)), ("Status", "CONFIRMED")],
+            ),
+        )
+    elif obj.status == "cancelled":
+        send_sms(obj.phone, sms_reservation_cancelled(obj.name, obj.date, short))
+        send_email(
+            f"[LVFF] Reservation Cancelled · #{short}",
+            render_event_email(
+                f"Reservation Cancelled · #{short}",
+                [("Guest", obj.name), ("Phone", obj.phone), ("Date", obj.date), ("Status", "CANCELLED")],
+            ),
+        )
+    await manager.broadcast({"type": "reservation.updated", "data": obj.model_dump(mode="json")})
 
 
 # --------- Orders ---------
@@ -316,21 +399,19 @@ async def create_order(payload: OrderCreate):
     doc["created_at"] = doc["created_at"].isoformat()
     await db.orders.insert_one(doc)
 
-    asyncio.create_task(_handle_order_notify(obj))
+    asyncio.create_task(_notify_order_created(obj))
     return obj
 
 
-async def _handle_order_notify(obj: Order):
+async def _notify_order_created(obj: Order):
     short = obj.id[:6].upper()
     item_lines = "; ".join(f"{i.qty}× {i.name}" for i in obj.items)
-    sms_body = (
-        f"LAKSHMI VENKATESWARA — Order #{short}: {item_lines}. Total ₹{int(obj.total)}. "
-        f"Ready in ~25 min. — Kitchen"
+    body = (
+        f"LAKSHMI VENKATESWARA — Order #{short} received: {item_lines}. Total ₹{int(obj.total)}. "
+        f"Awaiting kitchen confirmation. — House"
     )
-    send_sms(obj.customer_phone, sms_body)
-    items_html = "<br>".join(
-        f"&nbsp;&nbsp;{i.qty}× {i.name} — ₹{int(i.price * i.qty)}" for i in obj.items
-    )
+    send_sms(obj.customer_phone, body)
+    items_html = "<br>".join(f"&nbsp;&nbsp;{i.qty}× {i.name} — ₹{int(i.price * i.qty)}" for i in obj.items)
     email_html = render_event_email(
         f"New Order · #{short}",
         [
@@ -338,36 +419,81 @@ async def _handle_order_notify(obj: Order):
             ("Phone", obj.customer_phone),
             ("Items", items_html),
             ("Total", f"₹ {int(obj.total)}"),
+            ("Status", "PENDING"),
         ],
     )
     send_email(f"[LVFF] Order #{short}", email_html)
-
-    await manager.broadcast({"type": "order", "data": obj.model_dump(mode="json")})
+    await manager.broadcast({"type": "order.created", "data": obj.model_dump(mode="json")})
 
 
 @api_router.get("/orders", response_model=List[Order])
 async def list_orders(_=Depends(require_admin)):
-    rows = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    rows = await db.orders.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     for r in rows:
         if isinstance(r.get("created_at"), str):
             r["created_at"] = datetime.fromisoformat(r["created_at"])
     return rows
 
 
+@api_router.patch("/orders/{oid}", response_model=Order)
+async def update_order_status(oid: str, payload: StatusUpdate, _=Depends(require_admin)):
+    doc = await db.orders.find_one({"id": oid}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Order not found")
+    await db.orders.update_one({"id": oid}, {"$set": {"status": payload.status}})
+    doc["status"] = payload.status
+    if isinstance(doc.get("created_at"), str):
+        doc["created_at"] = datetime.fromisoformat(doc["created_at"])
+    obj = Order(**doc)
+    asyncio.create_task(_notify_order_status(obj))
+    return obj
+
+
+async def _notify_order_status(obj: Order):
+    short = obj.id[:6].upper()
+    if obj.status == "confirmed":
+        send_sms(obj.customer_phone, sms_order_confirmed(obj.customer_name, short))
+        send_email(
+            f"[LVFF] Order CONFIRMED · #{short}",
+            render_event_email(
+                f"Order Confirmed · #{short}",
+                [("Guest", obj.customer_name), ("Phone", obj.customer_phone),
+                 ("Total", f"₹ {int(obj.total)}"), ("Status", "CONFIRMED")],
+            ),
+        )
+    elif obj.status == "cancelled":
+        send_sms(obj.customer_phone, sms_order_cancelled(obj.customer_name, short))
+        send_email(
+            f"[LVFF] Order Cancelled · #{short}",
+            render_event_email(
+                f"Order Cancelled · #{short}",
+                [("Guest", obj.customer_name), ("Phone", obj.customer_phone), ("Status", "CANCELLED")],
+            ),
+        )
+    await manager.broadcast({"type": "order.updated", "data": obj.model_dump(mode="json")})
+
+
 # --------- Admin auth ---------
-@api_router.post("/admin/login")
+@api_router.post("/admin/auth/login")
 async def admin_login(payload: AdminLogin):
-    if not ADMIN_PASSWORD:
-        raise HTTPException(status_code=503, detail="Admin password not configured.")
-    if payload.password != ADMIN_PASSWORD:
-        raise HTTPException(status_code=401, detail="Invalid password")
-    return {"ok": True}
+    # Optional CAPTCHA validation (client provides both pieces; verify they match)
+    if payload.captcha is not None and payload.captcha_expected is not None:
+        if payload.captcha.strip().upper() != payload.captcha_expected.strip().upper():
+            raise HTTPException(status_code=400, detail="Captcha incorrect")
+    if payload.username != ADMIN_USERNAME or payload.password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    return {"token": create_token(payload.username), "username": payload.username, "exp_hours": JWT_TTL_HOURS}
+
+
+@api_router.get("/admin/auth/me")
+async def admin_me(payload=Depends(require_admin)):
+    return {"username": payload.get("sub"), "role": payload.get("role"), "exp": payload.get("exp")}
 
 
 @api_router.get("/admin/config")
 async def admin_config():
     return {
-        "admin_configured": bool(ADMIN_PASSWORD),
+        "admin_configured": bool(ADMIN_USERNAME and ADMIN_PASSWORD),
         "twilio_configured": all(
             os.environ.get(k) for k in ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM_NUMBER")
         ),
@@ -376,17 +502,96 @@ async def admin_config():
     }
 
 
+# --------- Analytics ---------
+@api_router.get("/admin/analytics")
+async def admin_analytics(_=Depends(require_admin)):
+    orders = await db.orders.find({}, {"_id": 0}).to_list(5000)
+    reservations = await db.reservations.find({}, {"_id": 0}).to_list(5000)
+
+    today = date_cls.today()
+    today_iso = today.isoformat()
+    today_revenue = 0.0
+    today_orders = 0
+    today_confirmed_orders = 0
+
+    daily = defaultdict(lambda: {"revenue": 0.0, "orders": 0, "confirmed": 0})
+
+    for o in orders:
+        created = o.get("created_at")
+        if isinstance(created, str):
+            try:
+                created = datetime.fromisoformat(created)
+            except ValueError:
+                continue
+        if not created:
+            continue
+        d = created.date().isoformat()
+        total = float(o.get("total") or 0)
+        st = o.get("status", "pending")
+        daily[d]["orders"] += 1
+        if st == "confirmed":
+            daily[d]["revenue"] += total
+            daily[d]["confirmed"] += 1
+        if d == today_iso:
+            today_orders += 1
+            if st == "confirmed":
+                today_revenue += total
+                today_confirmed_orders += 1
+
+    # Last 14 days trend (oldest -> newest)
+    series = []
+    for i in range(13, -1, -1):
+        d = (today - timedelta(days=i)).isoformat()
+        series.append({"date": d, "revenue": round(daily[d]["revenue"], 2), "orders": daily[d]["orders"]})
+
+    # Reservation breakdown
+    res_breakdown = {"pending": 0, "confirmed": 0, "cancelled": 0}
+    for r in reservations:
+        st = r.get("status", "pending")
+        if st in res_breakdown:
+            res_breakdown[st] += 1
+
+    # Order breakdown
+    order_breakdown = {"pending": 0, "confirmed": 0, "cancelled": 0}
+    for o in orders:
+        st = o.get("status", "pending")
+        if st in order_breakdown:
+            order_breakdown[st] += 1
+
+    completed = order_breakdown["confirmed"] + res_breakdown["confirmed"]
+    cancelled = order_breakdown["cancelled"] + res_breakdown["cancelled"]
+    total_events = max(completed + cancelled, 1)
+
+    return {
+        "today": {
+            "date": today_iso,
+            "revenue": round(today_revenue, 2),
+            "orders": today_orders,
+            "confirmed_orders": today_confirmed_orders,
+        },
+        "trend_14d": series,
+        "reservations": res_breakdown,
+        "orders": order_breakdown,
+        "completion_rate": round(completed / total_events * 100, 1),
+        "cancellation_rate": round(cancelled / total_events * 100, 1),
+    }
+
+
 # --------- WebSocket admin feed ---------
 @app.websocket("/api/admin/ws")
-async def admin_ws(ws: WebSocket, password: str = ""):
-    if not ADMIN_PASSWORD or password != ADMIN_PASSWORD:
+async def admin_ws(ws: WebSocket, token: str = ""):
+    try:
+        payload = verify_token(token) if token else None
+        if not payload or payload.get("role") != "admin":
+            await ws.close(code=4401)
+            return
+    except Exception:
         await ws.close(code=4401)
         return
     await manager.connect(ws)
     try:
         await ws.send_json({"type": "hello", "ts": datetime.now(timezone.utc).isoformat()})
         while True:
-            # keep-alive
             await asyncio.sleep(20)
             try:
                 await ws.send_json({"type": "ping"})

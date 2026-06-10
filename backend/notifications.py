@@ -26,7 +26,6 @@ def _gmail_configured() -> bool:
 
 
 def send_sms(to_phone: str, body: str) -> bool:
-    """Send an SMS via Twilio. Returns True on success, False on failure or if unconfigured."""
     if not _twilio_configured():
         logger.info("Twilio not configured — skipping SMS to %s", to_phone)
         return False
@@ -46,7 +45,6 @@ def send_sms(to_phone: str, body: str) -> bool:
 
 
 def send_email(subject: str, html_body: str, to: str | None = None) -> bool:
-    """Send an HTML email via Gmail SMTP. Returns True on success."""
     if not _gmail_configured():
         logger.info("Gmail SMTP not configured — skipping email")
         return False
@@ -71,7 +69,6 @@ def send_email(subject: str, html_body: str, to: str | None = None) -> bool:
 
 
 def render_event_email(title: str, rows: list[tuple[str, str]]) -> str:
-    """Render a luxe dark-themed HTML email for the dispatch alert."""
     rows_html = "".join(
         f"<tr><td style='padding:8px 12px;color:#888;border-bottom:1px solid #2a2620'>{k}</td>"
         f"<td style='padding:8px 12px;color:#F9F5F0;border-bottom:1px solid #2a2620'>{v}</td></tr>"
@@ -92,3 +89,31 @@ def render_event_email(title: str, rows: list[tuple[str, str]]) -> str:
     </div>
   </div>
 </body></html>"""
+
+
+def sms_reservation_confirmed(name: str, date: str, time: str, guests: int, short_id: str) -> str:
+    return (
+        f"LAKSHMI VENKATESWARA — Reservation #{short_id} CONFIRMED for {name}, "
+        f"{date} {time}, party of {guests}. See you at the door. — Concierge"
+    )
+
+
+def sms_reservation_cancelled(name: str, date: str, short_id: str) -> str:
+    return (
+        f"LAKSHMI VENKATESWARA — Reservation #{short_id} for {name} on {date} has been cancelled. "
+        f"The table is released. Please write back any time. — Concierge"
+    )
+
+
+def sms_order_confirmed(name: str, short_id: str) -> str:
+    return (
+        f"LAKSHMI VENKATESWARA — Order #{short_id} CONFIRMED. The kitchen has begun. "
+        f"Ready in ~25 min. — Kitchen"
+    )
+
+
+def sms_order_cancelled(name: str, short_id: str) -> str:
+    return (
+        f"LAKSHMI VENKATESWARA — Order #{short_id} cancelled. No charges. "
+        f"We hope to serve you again soon. — Kitchen"
+    )
