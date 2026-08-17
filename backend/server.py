@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, status
+from fastapi import FastAPI, APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Depends, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -25,6 +25,7 @@ from notifications import (
     sms_order_confirmed,
     sms_order_cancelled,
 )
+from auth import build_router as build_auth_router, session_user_from_token, ADMIN_ALLOWED_EMAILS
 
 
 ROOT_DIR = Path(__file__).parent
@@ -175,18 +176,25 @@ def verify_token(token: str) -> dict:
     return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALG])
 
 
-def require_admin(creds: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme)):
-    if not creds or creds.scheme.lower() != "bearer":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
-    try:
-        payload = verify_token(creds.credentials)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    if payload.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Forbidden")
-    return payload
+async def require_admin(request: Request):
+    """Accepts either the JWT bearer (username/password login) or the Google session cookie (allowlisted admin email)."""
+    auth = request.headers.get("authorization") or ""
+    if auth.lower().startswith("bearer "):
+        token = auth.split(" ", 1)[1].strip()
+        try:
+            payload = verify_token(token)
+            if payload.get("role") == "admin":
+                return {"kind": "jwt", "sub": payload.get("sub"), "role": "admin"}
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token expired")
+        except jwt.InvalidTokenError:
+            pass
+    session_cookie = request.cookies.get("session_token")
+    if session_cookie:
+        user = await session_user_from_token(db, session_cookie)
+        if user and user.is_admin:
+            return {"kind": "google", "sub": user.email, "role": "admin", "name": user.name}
+    raise HTTPException(status_code=401, detail="Not authenticated as admin")
 
 
 # ============= Static Menu (mirrors frontend menuData.js) =============
@@ -580,12 +588,30 @@ async def admin_analytics(_=Depends(require_admin)):
 # --------- WebSocket admin feed ---------
 @app.websocket("/api/admin/ws")
 async def admin_ws(ws: WebSocket, token: str = ""):
-    try:
-        payload = verify_token(token) if token else None
-        if not payload or payload.get("role") != "admin":
-            await ws.close(code=4401)
-            return
-    except Exception:
+    authorized = False
+    # 1) JWT token
+    if token:
+        try:
+            payload = verify_token(token)
+            if payload.get("role") == "admin":
+                authorized = True
+        except Exception:
+            pass
+    # 2) Google session cookie (WebSocket receives cookies automatically)
+    if not authorized:
+        cookie_hdr = ws.headers.get("cookie", "")
+        session_cookie = None
+        for part in cookie_hdr.split(";"):
+            if "=" in part:
+                k, v = part.strip().split("=", 1)
+                if k == "session_token":
+                    session_cookie = v
+                    break
+        if session_cookie:
+            user = await session_user_from_token(db, session_cookie)
+            if user and user.is_admin:
+                authorized = True
+    if not authorized:
         await ws.close(code=4401)
         return
     await manager.connect(ws)
@@ -605,11 +631,12 @@ async def admin_ws(ws: WebSocket, token: str = ""):
 
 # ============= App wiring =============
 app.include_router(api_router)
+app.include_router(build_auth_router(db))
 
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_origin_regex=".*",
     allow_methods=["*"],
     allow_headers=["*"],
 )

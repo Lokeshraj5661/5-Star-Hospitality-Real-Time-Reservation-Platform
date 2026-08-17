@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useMotion } from "@/context/MotionContext";
+import { useAuth } from "@/context/AuthContext";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -13,6 +14,14 @@ export default function Reservation() {
   const [form, setForm] = useState(initial);
   const [loading, setLoading] = useState(false);
   const { haptics } = useMotion();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user?.name && !form.name) {
+      setForm((f) => ({ ...f, name: user.name }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const update = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
