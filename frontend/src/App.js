@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "@/pages/Home";
 import Admin from "@/pages/Admin";
+import AdminPortal from "@/pages/AdminPortal";
 import { Toaster } from "@/components/ui/sonner";
 import { MotionProvider } from "@/context/MotionContext";
 import MotionInvite from "@/components/lvff/MotionInvite";
@@ -18,6 +19,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/admin/portal" element={<AdminPortal />} />
             <Route path="/admin" element={<Admin />} />
           </Routes>
         </BrowserRouter>
